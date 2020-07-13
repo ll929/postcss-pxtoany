@@ -11,7 +11,8 @@ const defaults = {
   replace: true,
   mediaQuery: false,
   minPixelValue: 0,
-  exclude: null
+  exclude: null,
+  unit: "rem"
 };
 
 const legacyOptions = {
@@ -23,7 +24,7 @@ const legacyOptions = {
   propWhiteList: "propList"
 };
 
-module.exports = postcss.plugin("postcss-pxtorem", options => {
+module.exports = postcss.plugin("postcss-pxtoany", options => {
   convertLegacyOptions(options);
   const opts = Object.assign({}, defaults, options);
   const satisfyPropList = createPropListMatcher(opts.propList);
@@ -47,7 +48,8 @@ module.exports = postcss.plugin("postcss-pxtorem", options => {
     const pxReplace = createPxReplace(
       rootValue,
       opts.unitPrecision,
-      opts.minPixelValue
+      opts.minPixelValue,
+      opts.unit
     );
 
     css.walkDecls((decl, i) => {
@@ -55,8 +57,9 @@ module.exports = postcss.plugin("postcss-pxtorem", options => {
         decl.value.indexOf("px") === -1 ||
         !satisfyPropList(decl.prop) ||
         blacklistedSelector(opts.selectorBlackList, decl.parent.selector)
-      )
+      ) {
         return;
+      }
 
       const value = decl.value.replace(pxRegex, pxReplace);
 
@@ -100,13 +103,13 @@ function convertLegacyOptions(options) {
   });
 }
 
-function createPxReplace(rootValue, unitPrecision, minPixelValue) {
+function createPxReplace(rootValue, unitPrecision, minPixelValue, unit) {
   return (m, $1) => {
     if (!$1) return m;
     const pixels = parseFloat($1);
     if (pixels < minPixelValue) return m;
     const fixedVal = toFixed(pixels / rootValue, unitPrecision);
-    return fixedVal === 0 ? "0" : fixedVal + "rem";
+    return fixedVal === 0 ? "0" : fixedVal + unit;
   };
 }
 
